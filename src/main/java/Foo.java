@@ -1,55 +1,59 @@
 import java.util.concurrent.CountDownLatch;
 
 public class Foo {
+    private CountDownLatch cdlB = new CountDownLatch(1);
+    private CountDownLatch cdlC = new CountDownLatch(1);
+
     void first() {
         System.out.print("first");
+        cdlB.countDown();
     }
 
     void second() {
+        try {
+            cdlB.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         System.out.print("second");
+        cdlC.countDown();
     }
 
     void third() {
+        try {
+            cdlC.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         System.out.print("third");
     }
 
 
     public static void main(String[] args) {
-
         Foo foo = new Foo();
-        CountDownLatch cdlB = new CountDownLatch(1);
-        CountDownLatch cdlC = new CountDownLatch(1);
+        Foo foo2 = new Foo();
 
         Runnable taskA = new Runnable() {
             @Override
             public void run() {
                 foo.first();
-                cdlB.countDown();
+                foo2.third();
             }
         };
 
         Runnable taskB = new Runnable() {
             @Override
             public void run() {
-                try {
-                    cdlB.await();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
                 foo.second();
-                cdlC.countDown();
+                foo2.second();
             }
         };
 
         Runnable taskC = new Runnable() {
             @Override
             public void run() {
-                try {
-                    cdlC.await();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
                 foo.third();
+                foo2.first();
             }
         };
 
